@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.techacademy.constants.ErrorKinds;
 import com.techacademy.entity.Employee;
+import com.techacademy.entity.Report;
 import com.techacademy.repository.EmployeeRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +20,12 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ReportService reportService;
 
-    public EmployeeService(EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder) {
+    public EmployeeService(EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, ReportService reportService) {
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
+        this.reportService = reportService;
     }
 
     // 従業員保存
@@ -77,6 +80,21 @@ public class EmployeeService {
             return ErrorKinds.LOGINCHECK_ERROR;
         }
         Employee employee = findByCode(code);
+
+
+        /* 削除対象の従業員に紐づいている日報情報の削除：ここから*/
+        System.out.println("日報リストの取得開始");
+        List<Report> reportList = employee.getReportList();
+
+        // 日報のリスト（reportList）を拡張for文を使って繰り返し
+        for (Report report : reportList) {
+            // 日報（report）のIDを指定して、日報情報を削除
+            reportService.delete(report.getId());
+        }
+        /* 削除対象の従業員に紐づいている日報情報の削除：ここまで */
+
+
+        // 日報が従業員テーブルを参照しているため、最後に削除フラグの処理をする
         LocalDateTime now = LocalDateTime.now();
         employee.setUpdatedAt(now);
         employee.setDeleteFlg(true);
